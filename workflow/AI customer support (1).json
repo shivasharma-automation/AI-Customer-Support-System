@@ -1,0 +1,719 @@
+{
+  "name": "AI customer support",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-support",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        -240
+      ],
+      "id": "be492cac-fc08-4e4c-b53d-2f84e72674b5",
+      "name": "Webhook",
+      "webhookId": "42c7dfb4-ef3b-42a1-8769-08097fc7c089"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cb77253e-6e93-4f2e-b6cb-6dcbbc06add4",
+              "name": "name",
+              "value": "={{ $json.body.name.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "7e01c3a4-99dd-4d4d-b416-e3b04535b3eb",
+              "name": "email",
+              "value": "={{ $json.body.email.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "395d1ddd-552c-4561-b755-af43beaefa2c",
+              "name": "subject",
+              "value": "={{ $json.body.subject.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "5a793b4c-4fb2-403d-8c90-b1d6b6984b05",
+              "name": "issue",
+              "value": "={{ $json.body.issue.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "dcc779b5-51d0-4ae4-962c-3fc2329b2bbf",
+              "name": "company",
+              "value": "={{ $json.body.company.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        -240
+      ],
+      "id": "ab916a40-da3d-4ab5-aeed-b26df1ff1072",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer gsk_xxxxxxxxxxxxxxxxx"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-8b-instant\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an AI Customer Support Assistant for businesses.\\n\\nAnalyze the customer's issue carefully and return ONLY valid JSON.\\n\\nDo NOT return markdown.\\nDo NOT return explanations.\\nDo NOT return extra text.\\n\\nReturn exactly this JSON structure:\\n\\n{\\n  \\\"category\\\": \\\"\\\",\\n  \\\"priority\\\": \\\"\\\",\\n  \\\"confidence\\\": 0,\\n  \\\"reply_required\\\": true,\\n  \\\"summary\\\": \\\"\\\",\\n  \\\"reply\\\": \\\"\\\",\\n  \\\"status\\\": \\\"Open\\\"\\n}\\n\\nRules:\\n1. Do NOT generate ticket_id.\\n2. confidence must be an integer between 0 and 100.\\n3. category must be one of:\\nTechnical, Billing, Sales, General Inquiry, Complaint, Feature Request, Automation, Other.\\n4. priority must be one of:\\nLow, Medium, High, Critical.\\n5. reply_required must be either true or false.\\n6. summary should be a concise 1-2 sentence summary.\\n7. reply should be professional, friendly, and personalized using the company name.\\n8. status must always be \\\"Open\\\".\\n9. Return ONLY valid JSON.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Company: {{$json.company}}\\nCustomer Name: {{$json.name}}\\nCustomer Email: {{$json.email}}\\nSubject: {{$json.subject}}\\nIssue: {{$json.issue}}\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"response_format\": {\n    \"type\": \"json_object\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -336,
+        -96
+      ],
+      "id": "0c0f7aeb-c212-472d-b117-e33a62f63689",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const aiResponse = $json.choices[0].message.content;\n\n// Convert JSON string to JavaScript object\nconst parsed = JSON.parse(aiResponse);\n\n// Return the parsed object\nreturn {\n  json: parsed\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        144
+      ],
+      "id": "67e7670d-05fb-4948-8cb6-0518c2aae27f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $json;\n\n// Current date & time\nconst now = new Date();\n\n// Format: YYYYMMDD\nconst date =\n  now.getFullYear().toString() +\n  String(now.getMonth() + 1).padStart(2, \"0\") +\n  String(now.getDate()).padStart(2, \"0\");\n\n// Generate Ticket ID\nconst ticketId = `TKT-${date}-${Math.floor(1000 + Math.random() * 9000)}`;\n\nreturn {\n  json: {\n    ...data,\n    ticket_id: ticketId,\n    created_at: now.toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        144
+      ],
+      "id": "6bf6119a-ba02-4c1b-97b5-cddd9c7d61b6",
+      "name": "Generate ticket"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -128,
+        -256
+      ],
+      "id": "7126f71b-7567-4e41-8809-935e26f8e4f1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12YbSuCYC67fYiDiKpgZUJrAr7jkL3o43zET_kl15Qjc",
+          "mode": "list",
+          "cachedResultName": "AI customer support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12YbSuCYC67fYiDiKpgZUJrAr7jkL3o43zET_kl15Qjc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12YbSuCYC67fYiDiKpgZUJrAr7jkL3o43zET_kl15Qjc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{$json.ticket_id}}",
+            "created_at": "={{$json.created_at}}",
+            "company": "={{$json.company}}",
+            "customer_name": "={{$json.name}}",
+            "customer_email": "={{$json.email}}",
+            "subject": "={{$json.subject}}",
+            "issue": "={{$json.issue}}",
+            "category": "={{$json.category}}",
+            "priority": "={{$json.priority}}",
+            "confidence": "={{$json.confidence}}",
+            "reply_required": "={{$json.reply_required}}",
+            "summary": "={{$json.summary}}",
+            "ai_reply": "={{$json.reply}}",
+            "status": "={{$json.status}}",
+            "assigned_to": "={{$json.assigned_to}}",
+            "escalated": "={{$json.escalated}}",
+            "last_updated": "={{$json.last_updated}}",
+            "resolution": "={{ \"\" }}",
+            "closed_at": "={{ \"\" }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_email",
+              "displayName": "customer_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "issue",
+              "displayName": "issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reply_required",
+              "displayName": "reply_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_reply",
+              "displayName": "ai_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "assigned_to",
+              "displayName": "assigned_to",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "escalated",
+              "displayName": "escalated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resolution",
+              "displayName": "resolution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_updated",
+              "displayName": "last_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        240,
+        -16
+      ],
+      "id": "503b42c8-f876-4e39-aa6b-ccdab294fb8a",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cqdtlNOpDiGwAq7g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.customer_email }}",
+        "subject": "=Support Request Received - {{ $json.ticket_id }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\n\nbody{\n    font-family:Arial,sans-serif;\n    background:#f5f7fb;\n    margin:0;\n    padding:30px;\n}\n\n.container{\n    max-width:700px;\n    margin:auto;\n    background:white;\n    border-radius:12px;\n    padding:35px;\n    box-shadow:0 2px 10px rgba(0,0,0,.08);\n}\n\nh1{\n    color:#2563eb;\n    margin-bottom:10px;\n}\n\np{\n    line-height:1.7;\n    color:#444;\n}\n\ntable{\n    width:100%;\n    border-collapse:collapse;\n    margin-top:25px;\n}\n\ntd{\n    border:1px solid #e5e7eb;\n    padding:12px;\n}\n\nth{\n    background:#2563eb;\n    color:white;\n    padding:12px;\n}\n\n.footer{\n    margin-top:35px;\n    font-size:13px;\n    color:#777;\n    border-top:1px solid #eee;\n    padding-top:20px;\n}\n\n</style>\n</head>\n\n<body>\n\n<div class=\"container\">\n\n<h1>Support Request Received ✅</h1>\n\n<p>Hello <strong>{{ $json.customer_name }}</strong>,</p>\n\n<p>\nThank you for contacting <strong>{{ $json.company }}</strong>.\nYour support request has been received successfully.\n</p>\n\n<table>\n\n<tr>\n<th colspan=\"2\">\nSupport Ticket Details\n</th>\n</tr>\n\n<tr>\n<td><strong>Ticket ID</strong></td>\n<td>{{ $json.ticket_id }}</td>\n</tr>\n\n<tr>\n<td><strong>Status</strong></td>\n<td>{{ $json.status }}</td>\n</tr>\n\n<tr>\n<td><strong>Category</strong></td>\n<td>{{ $json.category }}</td>\n</tr>\n\n<tr>\n<td><strong>Priority</strong></td>\n<td>{{ $json.priority }}</td>\n</tr>\n\n<tr>\n<td><strong>Summary</strong></td>\n<td>{{ $json.summary }}</td>\n</tr>\n\n</table>\n\n<p style=\"margin-top:25px;\">\nOur AI assistant has analyzed your request, and our support team will review it shortly.\n</p>\n\n<p>\nThank you for choosing <strong>{{ $json.company }}</strong>.\n</p>\n\n<p>\nBest Regards,<br>\n<strong>{{ $json.company }} Support Team</strong>\n</p>\n\n<div class=\"footer\">\n\nThis is an automated acknowledgement email generated by the AI Customer Support System.\n\n</div>\n\n</div>\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "58c2307d-f1a9-49e6-bc44-0a4add11f35e",
+      "name": "Send a message",
+      "webhookId": "6c8542fb-91f8-4c59-806e-54c55646785a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7GzEn6vGdebGct6q",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "73a3b007-0e8d-49a9-86f4-0b1aa49f11e4",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": 90,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        -256
+      ],
+      "id": "45fa8e6b-8f61-43d0-b4fc-36b95d7eafb7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ee58170-50f5-4348-b7b9-f2ac76645e49",
+              "name": "status",
+              "value": "Pending",
+              "type": "string"
+            },
+            {
+              "id": "0c91f094-438d-478f-9998-cddeaf9903e3",
+              "name": "escalated",
+              "value": "Yes",
+              "type": "string"
+            },
+            {
+              "id": "3de19d92-1b39-4b97-9e97-f478e0ba8c84",
+              "name": "assigned_to",
+              "value": "Human Support",
+              "type": "string"
+            },
+            {
+              "id": "53d2b11c-543f-42d0-bde5-697de0b36540",
+              "name": "last_updated",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -240
+      ],
+      "id": "4e0c4704-6980-4008-a116-3462939bd752",
+      "name": "Human Escalation"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        64,
+        -16
+      ],
+      "id": "d00a655f-b456-4171-b4ca-25f3f26a45b1",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "sendTo": "support@abc.com",
+        "subject": "={{ \"[ESCALATED] \" + $json.ticket_id + \" - \" + $json.subject }}",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\n    font-family:Arial,sans-serif;\n    background:#f5f5f5;\n    padding:20px;\n}\n\n.container{\n    max-width:700px;\n    margin:auto;\n    background:#ffffff;\n    border-radius:10px;\n    padding:30px;\n    box-shadow:0 2px 8px rgba(0,0,0,.1);\n}\n\nh2{\n    color:#dc2626;\n}\n\ntable{\n    width:100%;\n    border-collapse:collapse;\n    margin-top:20px;\n}\n\ntd{\n    border:1px solid #ddd;\n    padding:10px;\n}\n\n.footer{\n    margin-top:25px;\n    color:#666;\n    font-size:13px;\n}\n</style>\n</head>\n\n<body>\n\n<div class=\"container\">\n\n<h2>🚨 Escalated Support Ticket</h2>\n\n<p>\nAn AI support ticket requires <strong>human review</strong>.\n</p>\n\n<table>\n\n<tr>\n<td><strong>Ticket ID</strong></td>\n<td>{{ $json.ticket_id }}</td>\n</tr>\n\n<tr>\n<td><strong>Company</strong></td>\n<td>{{ $json.company }}</td>\n</tr>\n\n<tr>\n<td><strong>Customer</strong></td>\n<td>{{ $json.name }}</td>\n</tr>\n\n<tr>\n<td><strong>Email</strong></td>\n<td>{{ $json.email }}</td>\n</tr>\n\n<tr>\n<td><strong>Subject</strong></td>\n<td>{{ $json.subject }}</td>\n</tr>\n\n<tr>\n<td><strong>Issue</strong></td>\n<td>{{ $json.issue }}</td>\n</tr>\n\n<tr>\n<td><strong>Category</strong></td>\n<td>{{ $json.category }}</td>\n</tr>\n\n<tr>\n<td><strong>Priority</strong></td>\n<td>{{ $json.priority }}</td>\n</tr>\n\n<tr>\n<td><strong>AI Confidence</strong></td>\n<td>{{ $json.confidence }}%</td>\n</tr>\n\n<tr>\n<td><strong>Status</strong></td>\n<td>{{ $json.status }}</td>\n</tr>\n\n<tr>\n<td><strong>Assigned To</strong></td>\n<td>{{ $json.assigned_to }}</td>\n</tr>\n\n<tr>\n<td><strong>AI Summary</strong></td>\n<td>{{ $json.summary }}</td>\n</tr>\n\n<tr>\n<td><strong>Suggested Reply</strong></td>\n<td>{{ $json.reply }}</td>\n</tr>\n\n</table>\n\n<p style=\"margin-top:20px;\">\nPlease review this ticket and contact the customer as soon as possible.\n</p>\n\n<div class=\"footer\">\nAI Customer Support System • Internal Notification\n</div>\n\n</div>\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -240
+      ],
+      "id": "a006de71-ead5-4a9b-a3ed-027e0ab78615",
+      "name": "Send a message1",
+      "webhookId": "9ce69cb7-d7e2-4360-b68f-5982bcaad3a6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7GzEn6vGdebGct6q",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1YwIwLEKnsgXCBRE-yE7Hz5ncKknqK87J_Hj6Aa_dZws",
+          "mode": "list",
+          "cachedResultName": "ABC Knowledge Base",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YwIwLEKnsgXCBRE-yE7Hz5ncKknqK87J_Hj6Aa_dZws/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YwIwLEKnsgXCBRE-yE7Hz5ncKknqK87J_Hj6Aa_dZws/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        176
+      ],
+      "id": "edeb55a4-dc74-48a4-8c2e-8c022e5a6f88",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cqdtlNOpDiGwAq7g",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let knowledge = \"ABC COMPANY KNOWLEDGE BASE\\n\\n\";\n\nfor (const item of $input.all()) {\n  knowledge += `Q: ${item.json.question}\\n`;\n  knowledge += `A: ${item.json.answer}\\n\\n`;\n}\n\nreturn [\n  {\n    json: {\n      knowledge_base: knowledge\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        176
+      ],
+      "id": "b6ad7510-e548-4a8d-bd4e-fde72bcfd268",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Generate ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate ticket": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Escalation": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "85db09a2-d415-49b3-a1a1-ad80eda62280",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e36b7be5b3a8bf583d0e5da8b64960d123a9c1ebc1d993f76c42d35ab343f94d"
+  },
+  "nodeGroups": [],
+  "id": "T7cQynXpe1orXtuc",
+  "tags": []
+}
