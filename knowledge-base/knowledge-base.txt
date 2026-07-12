@@ -1,0 +1,80 @@
+ABC Company - Knowledge Base
+
+Company Name:
+ABC Company
+
+About:
+ABC Company provides AI automation, workflow automation, chatbot development, business process automation, CRM integration, email automation, invoice automation, customer support automation and custom software solutions.
+
+Business Hours:
+Monday - Friday
+9:00 AM - 6:00 PM IST
+
+Support Email:
+support@abccompany.com
+
+Phone:
++91-9876543210
+
+Website:
+https://www.abccompany.com
+
+Services:
+
+1. AI Automation
+- Business AI Agents
+- AI Customer Support
+- AI Email Automation
+- AI Lead Qualification
+- AI Appointment Booking
+
+2. Workflow Automation
+- n8n Automation
+- Zapier Migration
+- CRM Integration
+- Google Workspace Automation
+
+3. Software Development
+- Custom Web Applications
+- API Integrations
+- Dashboard Development
+
+Pricing Policy:
+Every project is custom quoted based on business requirements.
+
+Average Response Time:
+Within 24 business hours.
+
+Refund Policy:
+Refunds are evaluated on a case-by-case basis after project review.
+
+Support Policy:
+Customers receive email support during business hours.
+
+Escalation Policy:
+Complex technical issues are assigned to Human Support.
+
+Common FAQs
+
+Q: Do you provide AI Automation?
+A: Yes.
+
+Q: Do you use n8n?
+A: Yes.
+
+Q: Do you integrate Gmail?
+A: Yes.
+
+Q: Do you provide Google Sheets automation?
+A: Yes.
+
+Q: Can you build custom workflows?
+A: Yes.
+
+Q: Do you offer support after delivery?
+A: Yes.
+
+Q: How can I request a quotation?
+A: Submit the support form or email support@abccompany.com.
+
+End of Knowledge Base.
